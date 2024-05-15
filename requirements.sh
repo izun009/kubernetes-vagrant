@@ -1,13 +1,13 @@
 #!/bin/bash
 
 echo "[TASK 1] update hosts"
-echo '192.168.10.100 master master' | tee -a /etc/hosts
+echo '192.168.56.100 master master' | tee -a /etc/hosts
 init=2
 stop=$1+1
 for (( c=$init; c<=$stop; c++ ))
 do
   worker="$(($c-1))"
-  echo "192.168.10.$c worker$worker worker$worker" | tee -a /etc/hosts
+  echo "192.168.56.$c worker$worker worker$worker" | tee -a /etc/hosts
 done
 
 
@@ -55,24 +55,20 @@ swapoff -a
 # Install apt-transport-https pkg
 echo "[TASK 6] Installing apt-transport-https pkg"
 apt-get update && apt-get install -y apt-transport-https curl
-curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - >/dev/null 2>&1
-
-# Add he kubernetes sources list into the sources.list directory
-cat <<EOF | sudo tee /etc/apt/sources.list.d/kubernetes.list
-deb https://apt.kubernetes.io/ kubernetes-xenial main
-EOF
+curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.30/deb/Release.key | sudo gpg --dearmor -o /etc/apt/kubernetes-apt-keyring.gpg
+echo 'deb [signed-by=/etc/apt/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.30/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
 
 ls -ltr /etc/apt/sources.list.d/kubernetes.list
 
 apt-get update -y
 
 # Install Kubernetes
-echo "[TASK 7] Install Kubernetes kubeadm, kubelet and kubectl 1.17.3"
-apt-get install -y kubelet=1.17.3-00 kubeadm=1.17.3-00 kubectl=1.17.3-00
+echo "[TASK 7] Install Kubernetes kubeadm, kubelet and kubectl"
+apt-get install -y kubelet kubeadm kubectl
+apt-mark hold kubelet kubeadm kubectl
 
 # Start and Enable kubelet service
 echo "[TASK 8] Enable and start kubelet service"
 systemctl enable kubelet >/dev/null 2>&1
 systemctl start kubelet >/dev/null 2>&1
-
 
